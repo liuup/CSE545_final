@@ -17,7 +17,7 @@ class BinPackingGAWoC:
     def __init__(self, items: List[float], bin_capacity: float, 
                  population_size: int = 100, generations: int = 200,
                  mutation_rate: float = 0.1, crossover_rate: float = 0.8,
-                 crowd_size: int = 5):
+                 crowd_size: int = 5, use_woc: bool = True):
         """
         Initialize the GA+WoC algorithm.
         
@@ -29,6 +29,7 @@ class BinPackingGAWoC:
             mutation_rate: Probability of mutation
             crossover_rate: Probability of crossover
             crowd_size: Number of parallel populations (crowds)
+            use_woc: Whether to use Wisdom of Crowds (if False, uses standard GA)
         """
         self.items = sorted(items, reverse=True)  # Sort items in descending order
         self.bin_capacity = bin_capacity
@@ -36,7 +37,8 @@ class BinPackingGAWoC:
         self.generations = generations
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
-        self.crowd_size = crowd_size
+        self.crowd_size = crowd_size if use_woc else 1
+        self.use_woc = use_woc
         self.best_solution = None
         self.best_fitness = float('inf')
         self.fitness_history = []
@@ -284,8 +286,8 @@ class BinPackingGAWoC:
             for i in range(self.crowd_size):
                 crowds[i] = self._evolve_population(crowds[i])
             
-            # Apply wisdom of crowds every 10 generations
-            if generation % 10 == 0 and generation > 0:
+            # Apply wisdom of crowds every 10 generations (only if WoC is enabled)
+            if self.use_woc and generation % 10 == 0 and generation > 0:
                 consensus = self._wisdom_of_crowds(crowds)
                 # Inject consensus into each crowd
                 for i in range(self.crowd_size):
@@ -299,7 +301,8 @@ class BinPackingGAWoC:
                 progress_callback(generation + 1, self.generations)
             
             if verbose and generation % 20 == 0:
-                print(f"Generation {generation}: Best fitness = {self.best_fitness:.4f}, "
+                algo_name = "GA+WoC" if self.use_woc else "GA"
+                print(f"Generation {generation} ({algo_name}): Best fitness = {self.best_fitness:.4f}, "
                       f"Bins = {int(self.best_fitness)}")
         
         # Convert best solution to bins

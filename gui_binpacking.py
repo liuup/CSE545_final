@@ -10,13 +10,15 @@ from matplotlib.figure import Figure
 
 class BinPackingGUI:
     """
-    GUI Application for Bin Packing with GA+WoC Algorithm.
+    GUI Application for Bin Packing with GA and GA+WoC Algorithms.
+    
+    Allows users to switch between standard GA and GA with Wisdom of Crowds (WoC).
     """
     
     def __init__(self, root):
         """Initialize the GUI."""
         self.root = root
-        self.root.title("Bin Packing Problem - GA+WoC Solver")
+        self.root.title("Bin Packing Problem - GA/GA+WoC Solver")
         self.root.geometry("1200x800")
         
         # Variables
@@ -30,6 +32,7 @@ class BinPackingGUI:
         self.mutation_rate = tk.DoubleVar(value=0.1)
         self.crossover_rate = tk.DoubleVar(value=0.8)
         self.crowd_size = tk.IntVar(value=5)
+        self.use_woc = tk.BooleanVar(value=True)  # Enable WoC by default
         
         self.solution_bins = []
         self.fitness_history = []
@@ -119,8 +122,19 @@ class BinPackingGUI:
         ttk.Entry(config_frame, textvariable=self.crossover_rate, width=15).grid(row=row, column=1, sticky=tk.W, pady=2)
         row += 1
         
+        # WoC Enable/Disable checkbox
+        self.woc_checkbox = ttk.Checkbutton(
+            config_frame, 
+            text="Enable WoC (Wisdom of Crowds)",
+            variable=self.use_woc,
+            command=self._toggle_woc
+        )
+        self.woc_checkbox.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
+        row += 1
+        
         ttk.Label(config_frame, text="Crowd Size:").grid(row=row, column=0, sticky=tk.W, pady=2)
-        ttk.Entry(config_frame, textvariable=self.crowd_size, width=15).grid(row=row, column=1, sticky=tk.W, pady=2)
+        self.crowd_size_entry = ttk.Entry(config_frame, textvariable=self.crowd_size, width=15)
+        self.crowd_size_entry.grid(row=row, column=1, sticky=tk.W, pady=2)
         row += 1
         
         # Separator
@@ -151,6 +165,15 @@ class BinPackingGUI:
         
         self.items_text = scrolledtext.ScrolledText(config_frame, width=30, height=8, wrap=tk.WORD)
         self.items_text.grid(row=row, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
+    
+    def _toggle_woc(self):
+        """Toggle WoC enable/disable and update UI."""
+        if self.use_woc.get():
+            self.crowd_size_entry.config(state='normal')
+            self.solve_button.config(text="Solve with GA+WoC")
+        else:
+            self.crowd_size_entry.config(state='disabled')
+            self.solve_button.config(text="Solve with GA")
         
     def _create_visualization_panel(self, parent):
         """Create visualization panel."""
@@ -317,7 +340,8 @@ class BinPackingGUI:
                 generations=self.generations.get(),
                 mutation_rate=self.mutation_rate.get(),
                 crossover_rate=self.crossover_rate.get(),
-                crowd_size=self.crowd_size.get()
+                crowd_size=self.crowd_size.get(),
+                use_woc=self.use_woc.get()
             )
             
             bins, num_bins, fitness_history, computation_time = solver.solve(
@@ -336,14 +360,20 @@ class BinPackingGUI:
         self.solution_bins = bins
         self.fitness_history = fitness_history
         
+        algo_name = "GA+WoC" if self.use_woc.get() else "GA"
+        
         # Update results text
         self.results_text.delete('1.0', tk.END)
-        results = f"=== SOLUTION FOUND ===\n\n"
+        results = f"=== SOLUTION FOUND ({algo_name}) ===\n\n"
+        results += f"Algorithm: {algo_name}\n"
         results += f"Number of bins used: {num_bins}\n"
         results += f"Final fitness: {fitness_history[-1]:.4f}\n"
         results += f"Computation time: {computation_time:.2f} seconds\n"
         results += f"Total items: {len(self.items)}\n"
-        results += f"Bin capacity: {self.bin_capacity.get()}\n\n"
+        results += f"Bin capacity: {self.bin_capacity.get()}\n"
+        if self.use_woc.get():
+            results += f"Crowd size: {self.crowd_size.get()}\n"
+        results += "\n"
         
         results += "Bin contents:\n"
         for i, bin_items in enumerate(bins):
@@ -364,7 +394,7 @@ class BinPackingGUI:
         self.progress['value'] = 100
         self.progress_label.config(text="Completed!")
         
-        messagebox.showinfo("Success", f"Solution found using {num_bins} bins!")
+        messagebox.showinfo("Success", f"Solution found using {num_bins} bins with {algo_name}!")
     
     def _plot_bins(self, bins):
         """Plot the bin packing solution."""
