@@ -362,6 +362,14 @@ class BinPackingGUI:
         
         algo_name = "GA+WoC" if self.use_woc.get() else "GA"
         
+        # Calculate average utilization
+        total_utilization = 0
+        for bin_items in bins:
+            load = sum(bin_items)
+            utilization = (load / self.bin_capacity.get()) * 100
+            total_utilization += utilization
+        avg_utilization = total_utilization / num_bins if num_bins > 0 else 0
+        
         # Update results text
         self.results_text.delete('1.0', tk.END)
         results = f"=== SOLUTION FOUND ({algo_name}) ===\n\n"
@@ -371,6 +379,7 @@ class BinPackingGUI:
         results += f"Computation time: {computation_time:.2f} seconds\n"
         results += f"Total items: {len(self.items)}\n"
         results += f"Bin capacity: {self.bin_capacity.get()}\n"
+        results += f"Average utilization: {avg_utilization:.2f}%\n"
         if self.use_woc.get():
             results += f"Crowd size: {self.crowd_size.get()}\n"
         results += "\n"
@@ -478,6 +487,9 @@ class BinPackingGUI:
         self.fitness_ax.set_title('Fitness Evolution Over Generations', fontsize=12, fontweight='bold')
         self.fitness_ax.grid(True, alpha=0.3)
         self.fitness_ax.legend()
+        
+        # Fix y-axis formatting to avoid scientific notation
+        self.fitness_ax.ticklabel_format(style='plain', axis='y', useOffset=False)
         
         # Add final value annotation
         final_fitness = fitness_history[-1]
