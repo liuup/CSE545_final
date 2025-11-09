@@ -290,8 +290,12 @@ class BinPackingGAWoC:
             if self.use_woc and generation % 10 == 0 and generation > 0:
                 consensus = self._wisdom_of_crowds(crowds)
                 # Inject consensus into each crowd
+                # for i in range(self.crowd_size):
+                #     crowds[i][0] = consensus[:]
                 for i in range(self.crowd_size):
-                    crowds[i][0] = consensus[:]
+                    fitness_scores = [self._calculate_fitness(ind) for ind in crowds[i]]
+                    worst_idx = np.argmax(fitness_scores)
+                    crowds[i][worst_idx] = consensus[:]
             
             # Track fitness
             self.fitness_history.append(self.best_fitness)
